@@ -3,19 +3,18 @@ using GitHubActionDemo.Database;
 using GitHubActionDemo.Endpoints;
 using GitHubActionDemo.Extensions;
 using GitHubActionDemo.Service;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.CustomSchemaIds(type => type.FullName!.Replace("+", "-")); // Use FullName to avoid conflicts
-});
-
+builder.Services.AddSwaggerWithAuth();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
 
 builder.Services.AddSingleton<NpgsqlConnectionFactory>(provider =>
@@ -27,11 +26,27 @@ builder.Services.AddDbContext<ApplicationDbContext>(option =>
 {
     option.UseNpgsql(connectionString);
 });
+
+builder.Services.AddAuthorization();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(option =>
+    {
+        option.RequireHttpsMetadata = false;
+        option.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!)),
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
 builder.Services.AddScoped<IGuidService, GuidService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<RegisterUser>();
 builder.Services.AddScoped<LoginUser>();
+builder.Services.AddSingleton<TokenProvider>();
 
 var app = builder.Build();
 
@@ -73,6 +88,9 @@ app.MapGet("/get-guid", (IGuidService guidService) =>
 
 UserEndpoints.Map(app);
 
+app.UseAuthentication();
+
+app.UseAuthorization();
 
 app.Run();
 

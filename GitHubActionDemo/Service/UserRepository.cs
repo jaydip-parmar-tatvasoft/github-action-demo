@@ -30,5 +30,10 @@ namespace GitHubActionDemo.Service
         {
             return await dbContext.users.SingleOrDefaultAsync(u => u.Email == email);
         }
+
+        public async Task<User?> GetById(string userId)
+        {
+            return await dbContext.users.FindAsync(new Guid(userId));
+        }
     }
 }

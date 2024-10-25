@@ -8,5 +8,6 @@ namespace GitHubActionDemo.Service
         Task<bool> EmailExistsAsync(string email);
         Task<bool> UserNameExistsAsync(string userName);
         Task<User?> GetByEmail(string email);
+        Task<User?> GetById(string userId);
     }
 }

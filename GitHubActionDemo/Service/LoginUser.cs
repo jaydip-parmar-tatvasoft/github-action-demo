@@ -2,11 +2,11 @@
 
 namespace GitHubActionDemo.Service
 {
-    public sealed class LoginUser(IUserRepository userRepository, IPasswordHasher passwordHasher)
+    public sealed class LoginUser(IUserRepository userRepository, IPasswordHasher passwordHasher, TokenProvider tokenProvider)
     {
         public record Request(string Email, string password);
 
-        public async Task<User> Handle(Request request)
+        public async Task<string> Handle(Request request)
         {
             User? user = await userRepository.GetByEmail(request.Email);
 
@@ -21,7 +21,8 @@ namespace GitHubActionDemo.Service
             {
                 throw new Exception("The password is incorrect.");
             }
-            return user;
+            var token = tokenProvider.Create(user);
+            return token;
         }
     }
 }
