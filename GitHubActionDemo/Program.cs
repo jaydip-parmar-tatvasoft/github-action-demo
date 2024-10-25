@@ -1,9 +1,37 @@
+using GitHubActionDemo;
+using GitHubActionDemo.Database;
+using GitHubActionDemo.Endpoints;
+using GitHubActionDemo.Extensions;
+using GitHubActionDemo.Service;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.CustomSchemaIds(type => type.FullName!.Replace("+", "-")); // Use FullName to avoid conflicts
+});
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
+
+builder.Services.AddSingleton<NpgsqlConnectionFactory>(provider =>
+{
+    return new NpgsqlConnectionFactory(connectionString);
+});
+
+builder.Services.AddDbContext<ApplicationDbContext>(option =>
+{
+    option.UseNpgsql(connectionString);
+});
+builder.Services.AddScoped<IGuidService, GuidService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<RegisterUser>();
+builder.Services.AddScoped<LoginUser>();
 
 var app = builder.Build();
 
@@ -12,6 +40,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.AddMigration();
 }
 
 var summaries = new[]
@@ -33,6 +62,17 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast")
 .WithOpenApi();
+
+
+app.MapGet("/get-guid", (IGuidService guidService) =>
+{
+    return guidService.GetGuid();
+})
+.WithName("GETGUID")
+.WithOpenApi();
+
+UserEndpoints.Map(app);
+
 
 app.Run();
 
