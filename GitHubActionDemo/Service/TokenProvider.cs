@@ -9,7 +9,7 @@ namespace GitHubActionDemo.Service
 {
     public sealed class TokenProvider(IConfiguration configuration)
     {
-        public string Create(User user)
+        public string CreateAccessToken(User user)
         {
             string secertKey = configuration["Jwt:Secret"]!;
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secertKey));
@@ -30,5 +30,37 @@ namespace GitHubActionDemo.Service
             var token = handeler.CreateToken(tokenDescriptor);
             return token;
         }
+
+        public string CreateRefreshToken()
+        {
+            var randomNumber = new byte[32];
+
+            using (var rang = RandomNumberGenerator.Create())
+            {
+                rang.GetBytes(randomNumber);
+                return Convert.ToBase64String(randomNumber);
+            }
+        }
+
+        public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
+        {
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Secret"]!)),
+                ValidIssuer = configuration["Jwt:Issuer"],
+                ValidAudience = configuration["Jwt:Audience"],
+                ValidateLifetime = false,
+            };
+            var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out var securityToken);
+            var jwtSecurityToken = securityToken as System.IdentityModel.Tokens.Jwt.JwtSecurityToken;
+
+            if (jwtSecurityToken is null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            {
+                throw new SecurityTokenException("token is invalid");
+            }
+            return principal;
+        }
+
     }
 }

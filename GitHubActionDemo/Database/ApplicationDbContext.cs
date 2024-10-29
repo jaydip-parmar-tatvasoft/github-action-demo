@@ -18,13 +18,13 @@ namespace GitHubActionDemo.Database
             modelBuilder.Entity<User>(entity =>
             {
                 entity.ToTable("users", "public");
-                
+
                 entity.HasKey(e => e.UserId);
 
                 entity.Property(e => e.UserId)
                       .HasColumnName("user_id")
                       .ValueGeneratedOnAdd();
-                
+
                 entity.Property(e => e.Email)
                       .HasColumnName("email")
                       .IsRequired()
@@ -33,15 +33,21 @@ namespace GitHubActionDemo.Database
                 entity.Property(e => e.PasswordHash)
                       .HasColumnName("pasword_hash")
                       .IsRequired();
-                
+
                 entity.Property(e => e.UserId)
                       .HasColumnName("user_id")
                       .ValueGeneratedOnAdd();
-                
+
                 entity.Property(e => e.UserName)
                       .HasColumnName("user_name")
                       .IsRequired()
-                      .HasMaxLength(20); // Example of property configuration
+                      .HasMaxLength(20);
+
+                entity.Property(e => e.RefreshToken)
+                      .HasColumnName("refresh_token");
+
+                entity.Property(e => e.RefreshTokenExpireOnUtc)
+                      .HasColumnName("refresh_token_expireon_utc");
             });
         }
     }

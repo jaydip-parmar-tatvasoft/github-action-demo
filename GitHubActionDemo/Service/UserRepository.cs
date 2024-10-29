@@ -1,6 +1,8 @@
 ﻿using GitHubActionDemo.Database;
 using GitHubActionDemo.Entity;
 using Microsoft.EntityFrameworkCore;
+using static Dapper.SqlMapper;
+using System.Collections.Generic;
 
 namespace GitHubActionDemo.Service
 {
@@ -34,6 +36,12 @@ namespace GitHubActionDemo.Service
         public async Task<User?> GetById(string userId)
         {
             return await dbContext.users.FindAsync(new Guid(userId));
+        }
+
+        public async Task UpdateAsync(User user)
+        {
+            dbContext.Set<User>().Update(user);
+            await dbContext.SaveChangesAsync();
         }
     }
 }

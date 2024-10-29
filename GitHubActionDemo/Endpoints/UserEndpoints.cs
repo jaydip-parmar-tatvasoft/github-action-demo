@@ -1,6 +1,8 @@
 ﻿using GitHubActionDemo.Entity;
 using GitHubActionDemo.Service;
 using Microsoft.IdentityModel.JsonWebTokens;
+using System.Security.Claims;
+using System.Text;
 
 namespace GitHubActionDemo.Endpoints
 {
@@ -18,19 +20,25 @@ namespace GitHubActionDemo.Endpoints
 
             builder.MapGet("/user/me", async (HttpContext httpContext, IUserRepository userRepository) =>
             {
-                var userId = httpContext.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                  ?? httpContext.User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+                var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
+                var builder = new StringBuilder();
 
-                var claims = httpContext.User.Claims.Select(c => new { c.Type, c.Value }).ToList();
+                foreach (var item in httpContext.User.Claims)
+                {
+                    builder.AppendLine($"{item.Type}- {item.Value}");
+                }
+                var x = builder.ToString(); 
 
                 if (userId == null)
                 {
-                    throw new Exception("Please login");
+                    return Results.Unauthorized();
                 }
-                return await userRepository.GetById(userId);
+                return Results.Ok(await userRepository.GetById(userId));
+            });
 
-            }).RequireAuthorization();
+            builder.MapPost("/get-token", async (RefreshTokenRequest.Request request, RefreshTokenRequest refreshTokenRequest) =>
+               await refreshTokenRequest.Handle(request)).AllowAnonymous();
 
             return builder;
         }

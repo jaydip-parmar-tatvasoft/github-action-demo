@@ -6,7 +6,7 @@ namespace GitHubActionDemo.Service
     {
         public record Request(string Email, string password);
 
-        public async Task<string> Handle(Request request)
+        public async Task<TokenResponse> Handle(Request request)
         {
             User? user = await userRepository.GetByEmail(request.Email);
 
@@ -21,8 +21,15 @@ namespace GitHubActionDemo.Service
             {
                 throw new Exception("The password is incorrect.");
             }
-            var token = tokenProvider.Create(user);
-            return token;
+            var token = tokenProvider.CreateAccessToken(user);
+            var refreshToken = tokenProvider.CreateRefreshToken();
+
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpireOnUtc = DateTime.UtcNow.AddDays(1);
+            await userRepository.UpdateAsync(user);
+            return new TokenResponse(token, refreshToken, user.RefreshTokenExpireOnUtc);
         }
     }
+
+    public record TokenResponse(string AccessToken, string RefreshToken, DateTime RefreshTokenExpiresOn);
 }
