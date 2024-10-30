@@ -1,4 +1,4 @@
-﻿using GitHubActionDemo.Entity;
+﻿using GitHubActionDemo.Entities;
 
 namespace GitHubActionDemo.Service
 {

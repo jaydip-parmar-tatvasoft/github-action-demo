@@ -1,12 +1,18 @@
 using GitHubActionDemo;
+using GitHubActionDemo.Authentication;
 using GitHubActionDemo.Database;
 using GitHubActionDemo.Endpoints;
+using GitHubActionDemo.Entities;
+using GitHubActionDemo.Enums;
 using GitHubActionDemo.Extensions;
+using GitHubActionDemo.Seeds;
 using GitHubActionDemo.Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,7 +33,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(option =>
     option.UseNpgsql(connectionString);
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(option =>
+{
+    option.AddPolicy("AdminPolicy", policy =>
+       policy.RequireRole(Role.Registered.Name));
+});
 builder.Services.AddAuthentication(option =>
 {
     option.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -46,49 +56,26 @@ builder.Services.AddAuthentication(option =>
 
 builder.Services.AddScoped<IGuidService, GuidService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<RegisterUser>();
 builder.Services.AddScoped<LoginUser>();
 builder.Services.AddScoped<RefreshTokenRequest>();
-builder.Services.AddSingleton<TokenProvider>();
+builder.Services.AddScoped<ITokenProvider, TokenProvider>();
+
+builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionAuthorizationPolicyProvider>();
+
+
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
     app.AddMigration();
 }
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
-
-
-app.MapGet("/get-guid", (IGuidService guidService) =>
-{
-    return guidService.GetGuid();
-})
-.WithName("GETGUID")
-.WithOpenApi();
 
 UserEndpoints.Map(app);
 
@@ -98,7 +85,3 @@ app.UseAuthorization();
 
 app.Run();
 
-internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

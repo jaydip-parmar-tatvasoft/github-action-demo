@@ -1,34 +1,56 @@
-﻿using GitHubActionDemo.Entity;
-using Microsoft.IdentityModel.JsonWebTokens;
+﻿using GitHubActionDemo.Entities;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace GitHubActionDemo.Service
 {
-    public sealed class TokenProvider(IConfiguration configuration)
+    public sealed class TokenProvider : ITokenProvider
     {
-        public string CreateAccessToken(User user)
+        private readonly IConfiguration configuration;
+        private readonly IPermissionService permissionService;
+
+        public TokenProvider(IConfiguration configuration, IPermissionService permissionService)
         {
-            string secertKey = configuration["Jwt:Secret"]!;
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secertKey));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity
-                ([
-                   new Claim(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
-                   new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                 ]),
-                Expires = DateTime.UtcNow.AddMinutes(configuration.GetValue<int>("Jwt:ExpirationInMinutes")),
-                SigningCredentials = credentials,
-                Issuer = configuration["Jwt:Issuer"],
-                Audience = configuration["Jwt:Audience"]
+            this.configuration = configuration;
+            this.permissionService = permissionService;
+        }
+
+        public async Task<string> CreateAccessTokenAsync(User user)
+        {
+            var claims = new List<Claim> {
+                new(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
+                new(JwtRegisteredClaimNames.Email, user.Email),
+                new(ClaimTypes.Role, Role.Registered.Name),
+
             };
-            var handeler = new JsonWebTokenHandler();
-            var token = handeler.CreateToken(tokenDescriptor);
-            return token;
+
+            var permissions = await permissionService.GetPermissionAsync(user.UserId);
+
+            foreach (var item in permissions)
+            {
+                claims.Add(new Claim("permission", item));
+            }
+
+            var signingCredentials = new SigningCredentials(
+                new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(configuration["Jwt:Secret"]!)),
+                SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                configuration["Jwt:Issuer"],
+                configuration["Jwt:Audience"],
+                claims,
+                null,
+                DateTime.UtcNow.AddMinutes(configuration.GetValue<int>("Jwt:ExpirationInMinutes")),
+                signingCredentials);
+
+            string tokenValue = new JwtSecurityTokenHandler()
+                .WriteToken(token);
+
+            return tokenValue;
         }
 
         public string CreateRefreshToken()

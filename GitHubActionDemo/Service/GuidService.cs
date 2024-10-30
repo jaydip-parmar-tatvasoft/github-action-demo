@@ -1,7 +1,7 @@
 ﻿
 using Dapper;
 using GitHubActionDemo.Database;
-using GitHubActionDemo.Entity;
+using GitHubActionDemo.Entities;
 using GitHubActionDemo.Service;
 using Microsoft.EntityFrameworkCore;
 

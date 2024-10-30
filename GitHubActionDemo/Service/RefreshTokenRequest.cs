@@ -3,7 +3,7 @@ using System.Security.Claims;
 
 namespace GitHubActionDemo.Service
 {
-    public sealed class RefreshTokenRequest(TokenProvider tokenProvider, IUserRepository userRepository)
+    public sealed class RefreshTokenRequest(ITokenProvider tokenProvider, IUserRepository userRepository)
     {
         public record Request(string AccessToken, string RefreshToken);
 
@@ -16,7 +16,7 @@ namespace GitHubActionDemo.Service
             {
                 throw new SecurityTokenException("Token is invalid");
             }
-            
+
             var user = await userRepository.GetById(userId);
 
             if (user == null || user.RefreshToken != request.RefreshToken || user.RefreshTokenExpireOnUtc < DateTime.UtcNow)
@@ -24,7 +24,7 @@ namespace GitHubActionDemo.Service
                 throw new SecurityTokenException("RefreshToken is expire or invalid");
             }
 
-            var token = tokenProvider.CreateAccessToken(user);
+            var token = await tokenProvider.CreateAccessTokenAsync(user);
             var refreshToken = tokenProvider.CreateRefreshToken();
             user.RefreshToken = refreshToken;
             user.RefreshTokenExpireOnUtc = DateTime.UtcNow.AddDays(1);

@@ -1,4 +1,4 @@
-﻿namespace GitHubActionDemo.Entity
+﻿namespace GitHubActionDemo.Entities
 {
     public class User
     {
@@ -8,5 +8,6 @@
         public string PasswordHash { get; set; } = null!;
         public string RefreshToken { get; set; } = string.Empty;
         public DateTime RefreshTokenExpireOnUtc { get; set; }
+        public ICollection<Role> Roles { get; set; } = [];
     }
 }

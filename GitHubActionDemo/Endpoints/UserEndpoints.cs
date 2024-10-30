@@ -1,5 +1,7 @@
-﻿using GitHubActionDemo.Entity;
+﻿using GitHubActionDemo.Authentication;
+using GitHubActionDemo.Enums;
 using GitHubActionDemo.Service;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.JsonWebTokens;
 using System.Security.Claims;
 using System.Text;
@@ -18,18 +20,12 @@ namespace GitHubActionDemo.Endpoints
                await loginUser.Handle(request))
                 .AllowAnonymous();
 
-            builder.MapGet("/user/me", async (HttpContext httpContext, IUserRepository userRepository) =>
+            builder.MapGet("/user/me",
+            //[HasPermission(Permission.ViewUser)]
+             [Authorize(Policy = "AdminPolicy")]
+            async (HttpContext httpContext, IUserRepository userRepository) =>
             {
                 var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-                var builder = new StringBuilder();
-
-                foreach (var item in httpContext.User.Claims)
-                {
-                    builder.AppendLine($"{item.Type}- {item.Value}");
-                }
-                var x = builder.ToString(); 
-
                 if (userId == null)
                 {
                     return Results.Unauthorized();

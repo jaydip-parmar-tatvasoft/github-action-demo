@@ -1,8 +1,8 @@
 ﻿using GitHubActionDemo.Database;
-using GitHubActionDemo.Entity;
 using Microsoft.EntityFrameworkCore;
 using static Dapper.SqlMapper;
 using System.Collections.Generic;
+using GitHubActionDemo.Entities;
 
 namespace GitHubActionDemo.Service
 {

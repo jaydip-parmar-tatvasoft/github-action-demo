@@ -1,8 +1,9 @@
-﻿using GitHubActionDemo.Entity;
+﻿
+using GitHubActionDemo.Entities;
 
 namespace GitHubActionDemo.Service
 {
-    public sealed class LoginUser(IUserRepository userRepository, IPasswordHasher passwordHasher, TokenProvider tokenProvider)
+    public sealed class LoginUser(IUserRepository userRepository, IPasswordHasher passwordHasher, ITokenProvider tokenProvider)
     {
         public record Request(string Email, string password);
 
@@ -21,7 +22,7 @@ namespace GitHubActionDemo.Service
             {
                 throw new Exception("The password is incorrect.");
             }
-            var token = tokenProvider.CreateAccessToken(user);
+            var token = await tokenProvider.CreateAccessTokenAsync(user);
             var refreshToken = tokenProvider.CreateRefreshToken();
 
             user.RefreshToken = refreshToken;
