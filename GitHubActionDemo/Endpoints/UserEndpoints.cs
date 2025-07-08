@@ -1,42 +1,84 @@
-﻿using GitHubActionDemo.Authentication;
-using GitHubActionDemo.Enums;
-using GitHubActionDemo.Service;
+﻿using Application.Login;
+using Application.RefreshToken;
+using Application.Register;
+using Carter;
+using Domain.Entities.Users;
+using GitHubActionDemo.Extensions;
+using Infrastructure.Authentication;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using System.Text;
 
 namespace GitHubActionDemo.Endpoints
 {
-    public static class UserEndpoints
+    public class UserEndpoints : CarterModule
     {
-        public static IEndpointRouteBuilder Map(IEndpointRouteBuilder builder)
+        public UserEndpoints()
+        // :base("/users")
         {
-            builder.MapPost("/register", async (RegisterUser.Request request, RegisterUser registerUser) =>
-                await registerUser.Handle(request))
-                .AllowAnonymous();
+        }
 
-            builder.MapPost("/login", async (LoginUser.Request request, LoginUser loginUser) =>
-               await loginUser.Handle(request))
-                .AllowAnonymous();
+        public override void AddRoutes(IEndpointRouteBuilder builder)
+        {
+            builder.MapPost("/register", RegisterUser).AllowAnonymous();
 
-            builder.MapGet("/user/me",
-            //[HasPermission(Permission.ViewUser)]
-             [Authorize(Policy = "AdminPolicy")]
-            async (HttpContext httpContext, IUserRepository userRepository) =>
+            builder.MapPost("/login", LoginUser).AllowAnonymous();
+
+            builder.MapGet("/user/me", GetUserDetails);
+
+            builder.MapPost("/get-token", GetToken).AllowAnonymous();
+
+        }
+
+        public static async Task<IResult> RegisterUser(ISender sender, RegisterRequest request, CancellationToken cancellationToken)
+        {
+            var command = new RegisterCommand(request.Email, request.UserName, request.Password);
+
+            var result = await sender.Send(command, cancellationToken);
+
+            return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+        }
+
+        public static async Task<IResult> LoginUser(ISender sender, [FromBody] LoginRequest request, CancellationToken cancellationToken)
+        {
+            var command = new LoginCommand(request.Email, request.Password);
+
+            var result = await sender.Send(command, cancellationToken);
+
+            if (!result.IsSuccess)
+                return result.ToProblemDetails();
+
+            return Results.Ok(result.Value);
+        }
+
+        //[HasPermission(Domain.Enums.Permission.WriteMember)]
+        //[Authorize(Policy = "AdminPolicy")]
+        public static async Task<IResult> GetUserDetails(HttpContext httpContext,ISender sender ,CancellationToken cancellationToken)
+        {
+            var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null || !Guid.TryParse(userId, out Guid parseUserId))
             {
-                var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (userId == null)
-                {
-                    return Results.Unauthorized();
-                }
-                return Results.Ok(await userRepository.GetById(userId));
-            });
+                return Results.Unauthorized();
+            }
 
-            builder.MapPost("/get-token", async (RefreshTokenRequest.Request request, RefreshTokenRequest refreshTokenRequest) =>
-               await refreshTokenRequest.Handle(request)).AllowAnonymous();
+            var command = new LoginCommand(request.Email, request.Password);
 
-            return builder;
+
+            var userDetails = await userRepository.GetByIdAsync(parseUserId, cancellationToken);
+            return Results.Ok(userDetails);
+        }
+
+        public async Task<IResult> GetToken(ISender sender, RefreshTokenRequest request, CancellationToken cancellationToken)
+        {
+            var command = new RefreshTokenCommand(request.AccessToken, request.RefreshToken);
+
+            var result = await sender.Send(command);
+
+            if (!result.IsSuccess)
+                return result.ToProblemDetails();
+
+            return Results.Ok(result.Value);
         }
     }
 }

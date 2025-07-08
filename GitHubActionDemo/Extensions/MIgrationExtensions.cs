@@ -1,5 +1,4 @@
-﻿using GitHubActionDemo.Database;
-using Microsoft.EntityFrameworkCore;
+﻿using Data;
 
 namespace GitHubActionDemo.Extensions
 {
