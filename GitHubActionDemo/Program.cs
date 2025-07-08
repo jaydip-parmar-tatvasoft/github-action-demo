@@ -8,8 +8,6 @@ builder.Logging.AddApplicationLogging();
 
 builder.Services.ConfigureOptions<DatabaseOptionsSetup>();
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services
     .AddProblemDetails()
     .AddDataAccessEntityFramework(builder.Configuration)
