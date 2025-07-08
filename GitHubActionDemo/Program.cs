@@ -8,7 +8,6 @@ builder.Logging.AddApplicationLogging();
 
 builder.Services.ConfigureOptions<DatabaseOptionsSetup>();
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services
     .AddProblemDetails()
     .AddDataAccessEntityFramework(builder.Configuration)
