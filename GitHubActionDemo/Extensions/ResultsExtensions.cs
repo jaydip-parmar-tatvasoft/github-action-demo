@@ -1,5 +1,4 @@
 ﻿using Domain.Shared;
-using Microsoft.AspNetCore.Mvc;
 
 namespace GitHubActionDemo.Extensions
 {
