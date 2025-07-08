@@ -11,8 +11,6 @@ public static class MediatorStartup
             option.RegisterServicesFromAssembly(Application.AssemblyReference.Assembly);
             option.RegisterServicesFromAssembly(GitHubActionDemo.AssemblyReference.Assembly);
         });
-        //services.Decorate(typeof(INotificationHandler<>), typeof(IdempotentDomainEventHandler<>));
-        //services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         return services;
     }
 }
