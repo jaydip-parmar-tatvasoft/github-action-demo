@@ -5,40 +5,6 @@ namespace GitHubActionDemo.Extensions
 {
     public static class ResultsExtensions
     {
-        //public static IResult HandleFailure(Result result)
-        //{
-        //    return result switch
-        //    {
-        //        { IsSuccess: true } => throw new InvalidOperationException(),
-        //        //var validationResult => Results.BadRequest(
-        //        //        CreateProblemDetails(
-        //        //            "Validation Error",
-        //        //            StatusCodes.Status400BadRequest,
-        //        //            result.Error,
-        //        //            validationResult.Error)),
-        //        //_ => Results.BadRequest(CreateProblemDetails(
-        //        //    "Bad Request",
-        //        //    StatusCodes.Status400BadRequest,
-        //        //    result.Error))
-        //    };
-        //}
-
-        //public static ProblemDetails CreateProblemDetails(
-        //    string title,
-        //    int status,
-        //    Error error,
-        //    Error[]? errors = null)
-        //{
-        //    return new ProblemDetails()
-        //    {
-        //        Title = title,
-        //        Type = error.Code,
-        //        Detail = error.Description,
-        //        Status = status,
-        //        Extensions = { { nameof(errors), errors } }
-        //    };
-        //}
-
         public static IResult ToProblemDetails<T>(this Result<T> results)
         {
             return Results.Problem(
